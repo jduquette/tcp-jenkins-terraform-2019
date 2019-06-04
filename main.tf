@@ -85,7 +85,7 @@ module "app_sg" {
 ######################################
 # Create Instance Profile
 ######################################
-resource "iam_instance_profile" "profile" {
+resource "aws_iam_instance_profile" "profile" {
   name = "${var.prefix}-instance-profile"
   role = "${module.iam_role.iam_role_name}"
 }
@@ -121,7 +121,7 @@ module "app_asg" {
   			#!/bin/bash --login
 
 
-            export HOME=/var/chef/solo;
+           export HOME=/var/chef/solo;
             export AWS_REGION=${region};
             export kmskeyid=${kms_key_id};
             
