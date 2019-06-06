@@ -1,4 +1,4 @@
-output "IAM_POLICY_ARN" {
+output "iam_policy_arn" {
   value = "${aws_iam_policy.tcp_jenkins-custom-policy.arn}"
 }
 

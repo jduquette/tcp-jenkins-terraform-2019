@@ -228,3 +228,9 @@ variable "prefix" {
   type        = "string"
   default     = "Duquette"
 }
+
+variable "region" {
+  description = "AWS Region"
+  type        = "string"
+  default     = "us-east-1"
+}

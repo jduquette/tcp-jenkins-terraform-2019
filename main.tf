@@ -115,123 +115,21 @@ resource "aws_elb" "app_elb" {
   connection_draining         = true
   connection_draining_timeout = 400
   tags = {
-    Name        = "${var.prefix}-${var.ProjectName}-jenkins"
+    Name        = lower("${var.prefix}-${var.ProjectName}-jenkins")
     Function    = "ELB for jenkins"
     System      = "ATA"
     Environment = "dev"
     Fisma_ID    = "TDB"
-    Owner       = "${var.aws_email}"
-    Team        = "${var.Team}"
+    Owner       = lower("${var.aws_email}")
+    Team        = lower("${var.Team}")
   }
 }
-# module "app_elb" {
-#   source = "terraform-aws-modules/elb/aws"
-#
-#   name = "${var.prefix}-${var.ProjectName}-jenkins"
-#
-#   subnets         = ["subnet-018118375aa52d481"]
-#   security_groups = ["${module.lb_sg.this_security_group_name}"]
-#   internal        = false
-#
-#   #listener = {
-#   #  instance_port     = "80"
-#   #  instance_protocol = "http"
-#   #  lb_port           = "80"
-#   #  lb_protocol       = "http"
-#   #}
-#   listener = [
-#     {
-#       instance_port     = "8080"
-#       instance_protocol = "http"
-#       lb_port           = "8080"
-#       lb_protocol       = "http"
-#     },
-#   ]
-#
-#   health_check = [
-#     {
-#       target              = "HTTP:8080/login"
-#       interval            = 300
-#       healthy_threshold   = 2
-#       unhealthy_threshold = 10
-#       timeout             = 60
-#     }
-#   ]
-#
-#   ## TODO: Determine where access logs should go
-#   # access_logs = [
-#   #   {
-#   #     bucket = "my-access-logs-bucket"
-#   #   },
-#   # ]
-#
-#   tags = {
-#     Name        = "${var.prefix}-${var.ProjectName}-jenkins"
-#     Function    = "ELB for jenkins"
-#     System      = "ATA"
-#     Environment = "dev"
-#     Fisma_ID    = "TDB"
-#     Owner       = "${var.aws_email}"
-#     Team        = "${var.Team}"
-#   }
-# }
-
-
 
 ######################################
-# Create AutoScaling Group
+# Create AutoScaling Group Launch Configuration
 ######################################
-
-# For now we'll create without the use of a module.  However when
-# https://bit.ly/2XsV617 is resolved, we should switch back to using this module.
-#
-# module "app_asg" {
-#   source              = "terraform-aws-modules/autoscaling/aws"
-#   name                = "${var.prefix}"
-#   lc_name             = "app_asg_lc"
-#   image_id      = var.AmiID
-#   instance_type        = "t2.xlarge"
-#   security_groups = ["sg-0176b2933ff3662e0"]
-#   ebs_block_device = [
-#       {
-#         device_name           = "/dev/xvdz"
-#         volume_type           = "gp2"
-#         volume_size           = "50"
-#         delete_on_termination = true
-#       },
-#     ]
-#
-#     root_block_device = [
-#       {
-#         volume_size           = "50"
-#         volume_type           = "gp2"
-#         delete_on_termination = true
-#       },
-#     ]
-#
-#   asg_name            = "var.prefix--TCP-JENKINS-ASG"
-#   vpc_zone_identifier = ["subnet-018118375aa52d481"]
-#   health_check_type   = "EC2"
-#   min_size            = 0
-#   max_size            = 1
-#   desired_capacity    = 0
-#   wait_for_capacity_timeout = 0
-#   tags = [
-#       {
-#         key                 = "Environment"
-#         value               = "dev"
-#         propagate_at_launch = true
-#       },
-#       {
-#         key                 = "Project"
-#         value               = "BenchLifeIsTheBestLife"
-#         propagate_at_launch = true
-#       },
-#     ]
-# }
-
 resource "aws_launch_configuration" "asg_conf" {
-  name_prefix          = var.prefix
+  name_prefix          = lower("${var.prefix}")
   image_id             = "${data.aws_ami.jenkins.id}"
   instance_type        = "t2.xlarge"
   iam_instance_profile = "${aws_iam_instance_profile.profile.name}"
@@ -248,12 +146,58 @@ resource "aws_launch_configuration" "asg_conf" {
     volume_type           = "gp2"
     delete_on_termination = true
   }
+  #   user_data_base64 = <<EOF
+  # #!/bin/bash --login
+  #
+  #
+  # export HOME=/var/chef/solo;
+  # export AWS_REGION=${var.region};
+  # export kmskeyid=${kms_key_id};
+  #
+  #
+  # # get attributes json
+  #
+  #
+  # crossing get s3://${bucket_name}/jenkins/deployment_id/attributes.json /var/chef/solo/;
+  # echo 'attributes json is downloaded';
+  #
+  #
+  # # get data_bags objects
+  #
+  #
+  # mkdir -p /var/chef/solo/data_bags/jenkins;
+  # crossing get s3://${bucket_name}/jenkins/deployment_id/data_bags/credentials.json /var/chef/solo/data_bags/jenkins;
+  # crossing get s3://${bucket_name}/jenkins/deployment_id/data_bags/local_users.json /var/chef/solo/data_bags/jenkins;
+  # echo 'data_bags are downloaded';
+  #
+  #
+  # # running chef for default_firstboot recipe
+  #
+  #
+  # chef-solo \
+  #   -j /var/chef/solo/attributes.json \
+  #   -c /var/chef/solo/solo.rb \
+  #   -l info -L /var/log/chef.log;
+  #
+  #
+  # # delete credentials
+  #
+  #
+  # rm -rf data_bags;
+  # service jenkins restart;
+  # #cfn-signal --exit-code $? --stack ${stack_name} --resource ${asg_name} --region ${region};
+  #
+  # EOF
+
   ####  Add Provisioners Here for User_Data items ####
   lifecycle {
     create_before_destroy = true
   }
 }
 
+######################################
+# Create AutoScaling Group
+######################################
 resource "aws_autoscaling_group" "app_asg" {
   name                 = "${var.prefix}-ASG"
   launch_configuration = "${aws_launch_configuration.asg_conf.name}"
