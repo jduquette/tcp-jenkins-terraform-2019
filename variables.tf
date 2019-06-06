@@ -158,17 +158,33 @@ data "aws_iam_policy_document" "tcp_jenkins_custom_policy_document" {
   }
 }
 
+data "aws_ami" "jenkins" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["jenkins-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["090999229429"] # Canonical
+}
+
 variable "ProjectName" {
   description = "The project name [tcp]"
   type        = "string"
   default     = "tcp"
 }
 
-variable "AmiID" {
-  description = "AMI ID to use [ami-0a6b05251d155bf77 - latest jenkins build]"
-  type        = "string"
-  default     = "ami-0a6b05251d155bf77"
-}
+#variable "AmiID" {
+#  description = "AMI ID to use [ami-0a6b05251d155bf77 - latest jenkins build]"
+#  type        = "string"
+#  default     = "ami-0a6b05251d155bf77"
+#}
 
 variable "Environment" {
   description = "**DHS Required Tag**\nEnvironment type. [non-prod]"
@@ -211,4 +227,4 @@ variable "prefix" {
   description = "Prefix used for identification of all created resources.  Leave blank if necessary"
   type        = "string"
   default     = "Duquette"
-} 
+}

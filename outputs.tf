@@ -1,7 +1,3 @@
-output "IAM_ROLE_ARN" {
-  value = "${aws_iam_role.role.arn}"
-}
-
 output "iam_role_name" {
   value = "${module.iam_role.iam_role_name}"
 }
