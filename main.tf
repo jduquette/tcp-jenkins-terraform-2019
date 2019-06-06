@@ -91,6 +91,94 @@ resource "aws_iam_instance_profile" "profile" {
 }
 
 ######################################
+# Create Elastic Load Balancer
+######################################
+resource "aws_elb" "app_elb" {
+  name            = "${var.prefix}-${var.ProjectName}-jenkins"
+  subnets         = ["subnet-018118375aa52d481"]
+  security_groups = ["${module.lb_sg.this_security_group_id}"]
+  listener {
+    instance_port     = 8080
+    instance_protocol = "http"
+    lb_port           = 8080
+    lb_protocol       = "http"
+  }
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 10
+    timeout             = 60
+    target              = "HTTP:8080/login"
+    interval            = 300
+  }
+  cross_zone_load_balancing   = true
+  idle_timeout                = 400
+  connection_draining         = true
+  connection_draining_timeout = 400
+  tags = {
+    Name        = "${var.prefix}-${var.ProjectName}-jenkins"
+    Function    = "ELB for jenkins"
+    System      = "ATA"
+    Environment = "dev"
+    Fisma_ID    = "TDB"
+    Owner       = "${var.aws_email}"
+    Team        = "${var.Team}"
+  }
+}
+# module "app_elb" {
+#   source = "terraform-aws-modules/elb/aws"
+#
+#   name = "${var.prefix}-${var.ProjectName}-jenkins"
+#
+#   subnets         = ["subnet-018118375aa52d481"]
+#   security_groups = ["${module.lb_sg.this_security_group_name}"]
+#   internal        = false
+#
+#   #listener = {
+#   #  instance_port     = "80"
+#   #  instance_protocol = "http"
+#   #  lb_port           = "80"
+#   #  lb_protocol       = "http"
+#   #}
+#   listener = [
+#     {
+#       instance_port     = "8080"
+#       instance_protocol = "http"
+#       lb_port           = "8080"
+#       lb_protocol       = "http"
+#     },
+#   ]
+#
+#   health_check = [
+#     {
+#       target              = "HTTP:8080/login"
+#       interval            = 300
+#       healthy_threshold   = 2
+#       unhealthy_threshold = 10
+#       timeout             = 60
+#     }
+#   ]
+#
+#   ## TODO: Determine where access logs should go
+#   # access_logs = [
+#   #   {
+#   #     bucket = "my-access-logs-bucket"
+#   #   },
+#   # ]
+#
+#   tags = {
+#     Name        = "${var.prefix}-${var.ProjectName}-jenkins"
+#     Function    = "ELB for jenkins"
+#     System      = "ATA"
+#     Environment = "dev"
+#     Fisma_ID    = "TDB"
+#     Owner       = "${var.aws_email}"
+#     Team        = "${var.Team}"
+#   }
+# }
+
+
+
+######################################
 # Create AutoScaling Group
 ######################################
 
@@ -149,21 +237,17 @@ resource "aws_launch_configuration" "asg_conf" {
   iam_instance_profile = "${aws_iam_instance_profile.profile.name}"
   key_name             = "josh.phillips"
   security_groups      = ["${module.app_sg.this_security_group_id}"]
-  # ebs_block_device = [
-  #   {
-  #     device_name           = "/dev/sde"
-  #     volume_type           = "gp2"
-  #     volume_size           = "400"
-  #     delete_on_termination = true
-  #   },
-  # ]
-  # root_block_device = [
-  #   {
-  #     volume_size           = "50"
-  #     volume_type           = "gp2"
-  #     delete_on_termination = true
-  #   },
-  # ]
+  ebs_block_device {
+    device_name           = "/dev/sde"
+    volume_type           = "gp2"
+    volume_size           = "400"
+    delete_on_termination = true
+  }
+  root_block_device {
+    volume_size           = "50"
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
   ####  Add Provisioners Here for User_Data items ####
   lifecycle {
     create_before_destroy = true
@@ -176,16 +260,16 @@ resource "aws_autoscaling_group" "app_asg" {
   min_size             = 1
   max_size             = 1
   vpc_zone_identifier  = ["subnet-018118375aa52d481"]
-  #load_balancers = [ think I forgot to create a load balancer!!]
-  health_check_type = "EC2"
+  load_balancers       = ["${aws_elb.app_elb.name}"]
+  health_check_type    = "EC2"
   tag {
     key                 = "Name"
-    value               = "bar"
+    value               = "${var.prefix}--Jenkins--ASG"
     propagate_at_launch = true
   }
   tag {
     key                 = "ServerFunction"
-    value               = "bar"
+    value               = "Jenkins Application Server"
     propagate_at_launch = true
   }
   tag {
