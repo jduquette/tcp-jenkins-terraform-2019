@@ -8,7 +8,7 @@ provider "aws" {
 module "iam_role" {
   prefix      = "${var.prefix}"
   ProjectName = "${var.ProjectName}"
-  aws_email   = "${var.aws_email}"
+  aws_email   = "${var.owner_email}"
   source      = "./modules/iam/role"
 }
 
@@ -18,7 +18,7 @@ module "iam_role" {
 module "iam_policy" {
   prefix      = "${var.prefix}"
   ProjectName = "${var.ProjectName}"
-  aws_email   = "${var.aws_email}"
+  aws_email   = "${var.owner_email}"
   source      = "./modules/iam/policy"
 }
 
@@ -27,7 +27,7 @@ module "iam_policy" {
 ######################################
 resource "aws_iam_role_policy_attachment" "attach-JenkinsPolicy" {
   role       = "${module.iam_role.iam_role_name}"
-  policy_arn = "arn:aws:iam::090999229429:policy/${module.iam_policy.iam_policy_name}"
+  policy_arn = "arn:aws:iam::${var.account_id}:policy/${module.iam_policy.iam_policy_name}"
 }
 
 ######################################
@@ -43,17 +43,17 @@ resource "aws_iam_role_policy_attachment" "attach-ReadOnly" {
 ######################################
 module "lb_sg" {
   source              = "terraform-aws-modules/security-group/aws//modules/http-8080"
-  name                = "${var.prefix}-tcp-loadbalancer"
-  description         = "Security Group for Jenkins Load Balancer"
-  vpc_id              = "vpc-023440f11753798e5"
+  name                = "${var.prefix}-${var.ProjectName}-lbSG"
+  description         = "Security Group for ${var.app_name} Load Balancer"
+  vpc_id              = "${var.vpc_id}"
   ingress_cidr_blocks = ["${var.WholeWorldCIDR}"]
   tags = {
-    Server_Function = "DEV_APP",
-    System          = "ATA",
-    Fisma_ID        = "Unknown",
-    Environment     = var.Environment,
-    Owner           = var.aws_email,
-    Team            = var.Team
+    Server_Function = "${var.app_name}",
+    System          = "${var.system}",
+    Fisma_ID        = "${var.fisma_id}",
+    Environment     = "${var.Environment}",
+    Owner           = "${var.owner_email}",
+    Team            = "${var.Team}"
   }
 }
 ######################################
@@ -61,9 +61,9 @@ module "lb_sg" {
 ######################################
 module "app_sg" {
   source       = "terraform-aws-modules/security-group/aws"
-  name         = "${var.prefix}-tcp-app"
-  description  = "Security Group for Jenkins Application Server"
-  vpc_id       = "vpc-023440f11753798e5"
+  name         = "${var.prefix}-${var.ProjectName}-appSG"
+  description  = "Security Group for ${var.app_name} Application Server"
+  vpc_id       = "${var.vpc_id}"
   egress_rules = ["all-all"]
   computed_ingress_with_source_security_group_id = [
     {
@@ -73,12 +73,12 @@ module "app_sg" {
   ]
   number_of_computed_ingress_with_source_security_group_id = 1
   tags = {
-    Server_Function = "DEV_APP",
-    System          = "ATA",
-    Fisma_ID        = "Unknown",
-    Environment     = var.Environment,
-    Owner           = var.aws_email,
-    Team            = var.Team
+    Server_Function = "${var.app_name}",
+    System          = "${var.system}",
+    Fisma_ID        = "${var.fisma_id}",
+    Environment     = "${var.Environment}",
+    Owner           = "${var.owner_email}",
+    Team            = "${var.Team}"
   }
 }
 
@@ -86,7 +86,7 @@ module "app_sg" {
 # Create Instance Profile
 ######################################
 resource "aws_iam_instance_profile" "profile" {
-  name = "${var.prefix}-instance-profile"
+  name = "${var.prefix}-${var.ProjectName}-instance-profile"
   role = "${module.iam_role.iam_role_name}"
 }
 
@@ -96,13 +96,17 @@ resource "aws_iam_instance_profile" "profile" {
 resource "aws_s3_bucket" "elb_bucket" {
   bucket = lower("${var.prefix}-${var.ProjectName}-elb-access-logs")
   tags = {
-    Name        = lower("${var.prefix}-${var.ProjectName}-elb_access_logs")
-    Environment = "${var.Environment}"
-    Owner       = "${var.aws_email}"
+    Name        = lower("${var.prefix}-${var.ProjectName}-elb_access_logs"),
+    Function    = "${var.app_name}-lb-access_logs",
+    System      = "${var.system}",
+    Fisma_ID    = "${var.fisma_id}",
+    Environment = "${var.Environment}",
+    Owner       = "${var.owner_email}",
+    Team        = "${var.Team}"
   }
 }
 ######################################
-# Update bucket policy to allow access log writes
+# Update bucket policy to allow access for ELB log writes
 ######################################
 resource "aws_s3_bucket_policy" "elb_bp" {
   bucket = "${aws_s3_bucket.elb_bucket.id}"
@@ -152,8 +156,8 @@ EOF
 # Create Elastic Load Balancer
 ######################################
 resource "aws_elb" "app_elb" {
-  name = "${var.prefix}-${var.ProjectName}-jenkins"
-  subnets = ["subnet-018118375aa52d481"]
+  name = "${var.prefix}-${var.ProjectName}-${var.app_name}-appELB"
+  subnets = "${var.subnets}"
   security_groups = ["${module.lb_sg.this_security_group_id}"]
   listener {
     instance_port = 8080
@@ -177,13 +181,13 @@ resource "aws_elb" "app_elb" {
   connection_draining = true
   connection_draining_timeout = 400
   tags = {
-    Name = lower("${var.prefix}-${var.ProjectName}-jenkins")
-    Function = "ELB for jenkins"
-    System = "ATA"
-    Environment = "dev"
-    Fisma_ID = "TDB"
-    Owner = lower("${var.aws_email}")
-    Team = lower("${var.Team}")
+    Name = lower("${var.prefix}-${var.ProjectName}-${var.app_name}-appELB")
+    Function = "${var.app_name}-ELB"
+    System = "${var.system}",
+    Fisma_ID = "${var.fisma_id}",
+    Environment = "${var.Environment}",
+    Owner = "${var.owner_email}",
+    Team = "${var.Team}"
   }
   depends_on = [
     aws_s3_bucket.elb_bucket,
@@ -198,7 +202,7 @@ resource "aws_launch_configuration" "asg_conf" {
   image_id = "${data.aws_ami.jenkins.id}"
   instance_type = "t2.xlarge"
   iam_instance_profile = "${aws_iam_instance_profile.profile.name}"
-  key_name = "josh.phillips"
+  key_name = "${var.KeypairName}"
   security_groups = ["${module.app_sg.this_security_group_id}"]
   ebs_block_device {
     device_name = "/dev/sde"
@@ -263,26 +267,36 @@ EOF
 # Create AutoScaling Group
 ######################################
 resource "aws_autoscaling_group" "app_asg" {
-  name                 = "${var.prefix}-ASG"
+  name                 = "${var.prefix}-${var.ProjectName}-${var.app_name}-ASG"
   launch_configuration = "${aws_launch_configuration.asg_conf.name}"
   min_size             = 1
   max_size             = 1
-  vpc_zone_identifier  = ["subnet-018118375aa52d481"]
+  vpc_zone_identifier  = "${var.subnets}"
   load_balancers       = ["${aws_elb.app_elb.name}"]
   health_check_type    = "EC2"
   tag {
     key                 = "Name"
-    value               = "${var.prefix}--Jenkins--ASG"
+    value               = "${var.prefix}-${var.ProjectName}-${var.app_name}-ASG"
     propagate_at_launch = true
   }
   tag {
-    key                 = "ServerFunction"
-    value               = "Jenkins Application Server"
+    key                 = "Function"
+    value               = "${var.app_name}-ApplicationServer"
     propagate_at_launch = true
   }
   tag {
     key                 = "Owner"
-    value               = "${var.aws_email}"
+    value               = "${var.owner_email}"
+    propagate_at_launch = true
+  }
+  tag {
+    key                 = "Environment"
+    value               = "${var.Environment}"
+    propagate_at_launch = true
+  }
+  tag {
+    key                 = "Team"
+    value               = "${var.Team}"
     propagate_at_launch = true
   }
   lifecycle {

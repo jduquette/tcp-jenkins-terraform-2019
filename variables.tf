@@ -1,7 +1,6 @@
-#
-# Variables file for TCP Jenkins instance
-#
-#
+#######################################
+# Data Resources for Application Stack
+#######################################
 
 data "aws_region" "current" {}
 
@@ -174,17 +173,14 @@ data "aws_ami" "jenkins" {
   owners = ["090999229429"] # Canonical
 }
 
+#######################################
+# Application Variables
+#######################################
 variable "ProjectName" {
   description = "The project name [tcp]"
   type        = "string"
   default     = "tcp"
 }
-
-#variable "AmiID" {
-#  description = "AMI ID to use [ami-0a6b05251d155bf77 - latest jenkins build]"
-#  type        = "string"
-#  default     = "ami-0a6b05251d155bf77"
-#}
 
 variable "Environment" {
   description = "**DHS Required Tag**\nEnvironment type. [non-prod]"
@@ -198,11 +194,11 @@ variable "InstanceType" {
   default     = "t2.xlarge"
 }
 
-## TODO: Save for later
-#variable "KeypairName" {
-#	description = "KeyPair used for external access (i.e. ssh)"
-#	type = "string"
-#}
+variable "KeypairName" {
+  description = "KeyPair used for external access (i.e. ssh)"
+  type        = "string"
+  default     = "duquette"
+}
 
 variable "Team" {
   description = "Team Name"
@@ -216,8 +212,7 @@ variable "WholeWorldCIDR" {
   default     = "0.0.0.0/0"
 }
 
-## TODO: Remove default to force entry.
-variable "aws_email" {
+variable "owner_email" {
   description = "user e-mail address"
   type        = "string"
   default     = "john.duquette@excella.com"
@@ -236,7 +231,7 @@ variable "region" {
 }
 
 variable "app_name" {
-  description = "Application Name (i.e. Jenkins, Cool Rails App)"
+  description = "Application Name (i.e. Jenkins, MyCoolRailsApp, etc.)"
   type        = "string"
   default     = "jenkins"
 }
@@ -251,4 +246,34 @@ variable "provision_bucket_name" {
   description = "S3 Bucket with provision files/scripts"
   type        = "string"
   default     = "tcp-secret-store"
+}
+
+variable "account_id" {
+  description = "AWS Account ID"
+  type        = "string"
+  default     = "090999229429"
+}
+
+variable "vpc_id" {
+  description = "ID of the VPC to use"
+  type        = "string"
+  default     = "vpc-023440f11753798e5"
+}
+
+variable "system" {
+  description = "Client Specific System Name"
+  type        = "string"
+  default     = "ATA"
+}
+
+variable "fisma_id" {
+  description = "Client FISMA ID"
+  type        = "string"
+  default     = "TBD"
+}
+
+variable "subnets" {
+  description = "List of Subnets to use"
+  type        = "list"
+  default     = ["subnet-018118375aa52d481"]
 }
