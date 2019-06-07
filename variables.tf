@@ -176,16 +176,28 @@ data "aws_ami" "jenkins" {
 #######################################
 # Application Variables
 #######################################
-variable "ProjectName" {
-  description = "The project name [tcp]"
+variable "account_id" {
+  description = "AWS Account ID"
   type        = "string"
-  default     = "tcp"
+  default     = "090999229429"
+}
+
+variable "app_name" {
+  description = "Application Name (i.e. Jenkins, MyCoolRailsApp, etc.)"
+  type        = "string"
+  default     = "jenkins"
 }
 
 variable "Environment" {
   description = "**DHS Required Tag**\nEnvironment type. [non-prod]"
   type        = "string"
   default     = "non-prod"
+}
+
+variable "fisma_id" {
+  description = "Client FISMA ID"
+  type        = "string"
+  default     = "TBD"
 }
 
 variable "InstanceType" {
@@ -200,22 +212,10 @@ variable "KeypairName" {
   default     = "duquette"
 }
 
-variable "Team" {
-  description = "Team Name"
+variable "kms_key" {
+  description = "KMS used for de/encryption"
   type        = "string"
-  default     = "NoBodyKnows"
-}
-
-variable "WholeWorldCIDR" {
-  description = "CIDR block to use [0.0.0.0/0]"
-  type        = "string"
-  default     = "0.0.0.0/0"
-}
-
-variable "owner_email" {
-  description = "user e-mail address"
-  type        = "string"
-  default     = "john.duquette@excella.com"
+  default     = "d89692d6-0171-4f71-8746-b116cfc5d844"
 }
 
 variable "prefix" {
@@ -224,22 +224,10 @@ variable "prefix" {
   default     = "Duquette"
 }
 
-variable "region" {
-  description = "AWS Region"
+variable "ProjectName" {
+  description = "The project name [tcp]"
   type        = "string"
-  default     = "us-east-1"
-}
-
-variable "app_name" {
-  description = "Application Name (i.e. Jenkins, MyCoolRailsApp, etc.)"
-  type        = "string"
-  default     = "jenkins"
-}
-
-variable "kms_key" {
-  description = "KMS used for de/encryption"
-  type        = "string"
-  default     = "d89692d6-0171-4f71-8746-b116cfc5d844"
+  default     = "tcp"
 }
 
 variable "provision_bucket_name" {
@@ -248,16 +236,28 @@ variable "provision_bucket_name" {
   default     = "tcp-secret-store"
 }
 
-variable "account_id" {
-  description = "AWS Account ID"
+variable "owner_email" {
+  description = "user e-mail address"
   type        = "string"
-  default     = "090999229429"
+  default     = "john.duquette@excella.com"
 }
 
-variable "vpc_id" {
-  description = "ID of the VPC to use"
+variable "region" {
+  description = "AWS Region"
   type        = "string"
-  default     = "vpc-023440f11753798e5"
+  default     = "us-east-1"
+}
+
+variable "Team" {
+  description = "Team Name"
+  type        = "string"
+  default     = "NoBodyKnows"
+}
+
+variable "subnets" {
+  description = "List of Subnets to use"
+  type        = "list"
+  default     = ["subnet-018118375aa52d481"]
 }
 
 variable "system" {
@@ -266,14 +266,14 @@ variable "system" {
   default     = "ATA"
 }
 
-variable "fisma_id" {
-  description = "Client FISMA ID"
+variable "vpc_id" {
+  description = "ID of the VPC to use"
   type        = "string"
-  default     = "TBD"
+  default     = "vpc-023440f11753798e5"
 }
 
-variable "subnets" {
-  description = "List of Subnets to use"
-  type        = "list"
-  default     = ["subnet-018118375aa52d481"]
+variable "WholeWorldCIDR" {
+  description = "CIDR block to use [0.0.0.0/0]"
+  type        = "string"
+  default     = "0.0.0.0/0"
 }
