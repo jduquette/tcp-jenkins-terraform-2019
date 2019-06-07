@@ -211,9 +211,9 @@ variable "Team" {
 }
 
 variable "WholeWorldCIDR" {
-  description = "CIDR block to use [10.0.0.0/8]"
+  description = "CIDR block to use [0.0.0.0/0]"
   type        = "string"
-  default     = "10.0.0.0/8"
+  default     = "0.0.0.0/0"
 }
 
 ## TODO: Remove default to force entry.

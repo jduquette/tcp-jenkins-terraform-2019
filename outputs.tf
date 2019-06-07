@@ -33,8 +33,13 @@ output "app_sg_name" {
 output "asg_config_id" {
   value = "${aws_launch_configuration.asg_conf.id}"
 }
+
 output "asg_config_name" {
   value = "${aws_launch_configuration.asg_conf.name}"
+}
+
+output "elb_bucket_name" {
+  value = "${aws_s3_bucket.elb_bucket.id}"
 }
 
 output "iam_role_name" {
