@@ -234,3 +234,21 @@ variable "region" {
   type        = "string"
   default     = "us-east-1"
 }
+
+variable "app_name" {
+  description = "Application Name (i.e. Jenkins, Cool Rails App)"
+  type        = "string"
+  default     = "jenkins"
+}
+
+variable "kms_key" {
+  description = "KMS used for de/encryption"
+  type        = "string"
+  default     = "d89692d6-0171-4f71-8746-b116cfc5d844"
+}
+
+variable "provision_bucket_name" {
+  description = "S3 Bucket with provision files/scripts"
+  type        = "string"
+  default     = "tcp-secret-store"
+}
